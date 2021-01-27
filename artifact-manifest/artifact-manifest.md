@@ -114,6 +114,10 @@ A CNAB may also be persisted with configuration information, along with a refere
 
 ![Wordpress CNAB](media/wordpress-cnab.svg)
 
+### Nydus Image
+
+A Nydus image is an alternative representation of container image, providing benefits like lazy-loading of images, etc.  Since it can be stored independently or along with the OCI image, their references are loose references.
+
 ## Supported Scenarios
 
 The main scenarios include:
@@ -474,6 +478,95 @@ As the `oci-reg copy` command is executed, the graph of references are expanded.
   ]
 }
 ```
+
+#### Nydus Image Reference
+
+> **OPTION A**
+
+```json
+{
+  "schemaVersion": 1,
+  "mediaType": "application/vnd.oci.artifact.manifest.v1+json",
+  "artifactType": "application/vnd.cncf.nydus.v1",
+  "config": {
+    "mediaType": "application/vnd.oci.image.manifest.config.v1+json",
+    "digest": "sha256:9e988712154fcc2ceda5602eb1d98c1f28299ba6fbf0be49d3717c35a2d76674",
+    "size": 1102
+  },
+  "blobs": [
+    {
+      "mediaType": "application/vnd.cncf.nydus.bootstrap.v1.tar+gzip",
+      "digest": "sha256:f6bb0822fe567c98959bb87aa316a565eb1ae059c46fa8bba65b573b4489b44d",
+      "size": 32654
+    },
+    {
+      "mediaType": "application/vnd.cncf.nydus.blob.v1",
+      "digest": "sha256:f6bb0822fe567c98959bb87aa316a565eb1ae059c46fa8bba65b573b4489b44d",
+      "size": 72832
+    },
+    {
+      "mediaType": "application/vnd.cncf.nydus.blob.v1",
+      "digest": "sha256:f6bb0822fe567c98959bb87aa316a565eb1ae059c46fa8bba65b573b4489b44d",
+      "size": 928324
+    }
+  ],
+  "manifests": [
+    {
+      "mediaType": "application/vnd.oci.image.manifest.config.v1+json",
+      "digest": "sha256:3c3a4604a545cdc127456d94e421cd355bca5b528f4a9c1905b15da2eb4a4c6b",
+      "size": 16724
+      "annotations": {
+	"oci.distribution.relationship": "references",
+	"oci.distribution.artifact": "mysql:8"
+      }
+    }
+  ]
+}
+```
+
+> **OPTION B**
+
+```json
+{
+  "schemaVersion": 1,
+  "mediaType": "application/vnd.oci.artifact.manifest.v1+json",
+  "artifactType": "application/vnd.cncf.nydus.v1",
+  "config": {
+    "mediaType": "application/vnd.oci.image.manifest.config.v1+json",
+    "digest": "sha256:9e988712154fcc2ceda5602eb1d98c1f28299ba6fbf0be49d3717c35a2d76674",
+    "size": 1102
+  },
+  "blobs": [
+    {
+      "mediaType": "application/vnd.cncf.nydus.bootstrap.v1.tar+gzip",
+      "digest": "sha256:f6bb0822fe567c98959bb87aa316a565eb1ae059c46fa8bba65b573b4489b44d",
+      "size": 32654
+    },
+    {
+      "mediaType": "application/vnd.cncf.nydus.blob.v1",
+      "digest": "sha256:f6bb0822fe567c98959bb87aa316a565eb1ae059c46fa8bba65b573b4489b44d",
+      "size": 72832
+    },
+    {
+      "mediaType": "application/vnd.cncf.nydus.blob.v1",
+      "digest": "sha256:f6bb0822fe567c98959bb87aa316a565eb1ae059c46fa8bba65b573b4489b44d",
+      "size": 928324
+    }
+  ],
+  "manifests": [],
+  "references": [
+    {
+      "mediaType": "application/vnd.oci.image.manifest.config.v1+json",
+      "digest": "sha256:3c3a4604a545cdc127456d94e421cd355bca5b528f4a9c1905b15da2eb4a4c6b",
+      "size": 16724
+      "annotations": {
+	"oci.distribution.artifact": "mysql:8"
+      }
+    }
+  ]
+}
+```
+
 ### Deletion
 
 Distribution-spec APIs will provide standard delete operations, including options for deleting referenced artifacts, or blocking a delete as the artifact is referenced by other artifacts. The `oci.artifact.manifest` collection will provide the information, as defined by the artifact author` for how an artifact should be handled for delete operations. The registry, nor the `oci-reg` cli would need to know about specific artifact implementations.
@@ -530,6 +623,7 @@ Examples include:
 - A helm chart referencing container images
 - A CNAB referencing Helm charts or other artifacts the CNAB may need to complete it's operation
 - A WASM that may reference other packages that may be stored in a registry.
+- A nydus image referencing the container image from which it can be converted.
 
 References are collections of OCI Artifact Content Descriptors.
 
