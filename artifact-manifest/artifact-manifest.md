@@ -381,6 +381,9 @@ As the `oci-reg copy` command is executed, the graph of references are expanded.
 }
 ```
 
+#### Nydus Image Reference
+![nydus image copy](./media/nydus_image.png)
+
 ### Deletion
 
 Distribution-spec APIs will provide standard delete operations, including options for deleting referenced artifacts, or blocking a delete as the artifact is referenced by other artifacts. The `oci.artifact.manifest` collection will provide the information, as defined by the artifact author` for how an artifact should be handled for delete operations. The registry, nor the `oci-reg` cli would need to know about specific artifact implementations.
