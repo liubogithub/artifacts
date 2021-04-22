@@ -26,103 +26,152 @@ Individual artifacts include Helm, Singularity, WASM and other artifacts that cu
 
 There are a new set of scenarios requiring the ability to reference existing artifacts, including the ability to additively sign content or add an SBoM. The addition of a [`[manifests]`][manifests] property supports linking independent artifacts. By storing these as separate, but linked artifacts, the existing OCI Image tool chain remains unchanged. Tooling that opts into understanding SBoM or Notary v2 signatures can find the linked artifacts without changing the existing image tool chains.
 
+## Reference Type Persistence & Discovery
+
+Reference type persistance & discovery supports the following requirements:
+
+- Maintain the original artifact digest and collection of associated tags, supporting existing dev through deployment workflows.
+- Multiple references per artifact, enabling multiple signatures, SBoMs and other reference types.
+- Reference types shouldn't require a tag, as they're not typically thought of as unique objects, rather enhancements to existing artifacts.
+- Native persistence within an OCI Artifact enabled, distribution spec based registry.
+- Reference type copying within and across OCI Artifact enabled, distribution spec based registries.
+
+To support the above requirements, reference types (eg signatures and SBoMs) are stored as individual, untagged [OCI Artifacts][oci-artifacts]. They are maintained as any other artifact in a registry, supporting standard operations such as listing, deleting, garbage collection and any other content addressable operations within a registry. Untagged artifacts are considered not ready for garbage collection if they have a reference to an existing artifact.
+
 ### Example Image
 
-The net-monitor image contains a config and a collection of layers, as defined by the [oci-image-spec][oci-image-manifest-spec].
+The `net-monitor:v1` image contains a config and a collection of layers, as defined by the [oci.image.manifest spec][oci-image-manifest-spec].
 
 ![OCI Image](./media/net-monitor-image.svg)
 
-The `net-monitor:v1` image has a representative `oci.image.manifest`, with a specific digest:
+The `net-monitor:v1` image is persisted as an `oci.image.manifest`, with a unique digest:
 
-**digest:** `net-monitor@sha256:73c803930ea3ba1e54bc25c2bdc53edd0284c62ed651fe7b00369da519a3c333`
-```json
-{
-  "schemaVersion": 2,
-  "config": {
-    "mediaType": "application/vnd.oci.image.config.v1+json",
-    "digest": "sha256:e752324f6804d5d0b2c098f84507d095a8fd0031cf06cdb3c7ad1625dcd1b399",
-    "size": 7097
-  },
-  "layers": [
-    {
-      "mediaType": "application/vnd.oci.image.layer.v1.tar+gzip",
-      "digest": "sha256:83c5cfdaa5385ea6fc4d31e724fd4dc5d74de847a7bdd968555b8f2c558dac0e",
-      "size": 25851449
+- **repository**: `net-monitor`
+- **digest**: `sha256:73c803930ea3ba1e54bc25c2bdc53edd0284c62ed651fe7b00369da519a3c333`
+- **tag**: `:v1`
+- **manifest.json**:
+  ```json
+  {
+    "schemaVersion": 2,
+    "config": {
+      "mediaType": "application/vnd.oci.image.config.v1+json",
+      "digest": "sha256:e752324f6804d5d0b2c098f84507d095a8fd0031cf06cdb3c7ad1625dcd1b399",
+      "size": 7097
     },
-    {
-      "mediaType": "application/vnd.oci.image.layer.v1.tar+gzip",
-      "digest": "sha256:7445693bd43e8246a8c166233392b33143f7f5e396c480f74538e5738fb6bd6e",
-      "size": 226
-    }
-  ]
-}
-```
+    "layers": [
+      {
+        "mediaType": "application/vnd.oci.image.layer.v1.tar+gzip",
+        "digest": "sha256:83c5cfdaa5385ea6fc4d31e724fd4dc5d74de847a7bdd968555b8f2c558dac0e",
+        "size": 25851449
+      },
+      {
+        "mediaType": "application/vnd.oci.image.layer.v1.tar+gzip",
+        "digest": "sha256:7445693bd43e8246a8c166233392b33143f7f5e396c480f74538e5738fb6bd6e",
+        "size": 226
+      }
+    ]
+  }
+  ```
 
 ### Notary v2 Signatures and SBoM Persistance
 
-To support enhancements of existing artifacts, a new OCI artifact manifest provides for a collection of manifest references. Examples include Notary and SBoM artifacts.
+Following the [oci.artifact.manifest spec][oci-artifact-manifest-spec], reference type artifacts are pushed with an `manifest.artifactType`, with a `[manifests]` entry for the artifact they reference:
 
-A Notary v2 signature, or an SBoM, would be represented as a manifest with a config object and a signature, persisted as blobs. The `[manifests]` collection references the net-monitor image through a descriptor, which represents another manifest.
+A signature, or an SBoM, would be persisted with the content persisted as a `blob` and a `[manifests]` reference the `net-monitor:v1` image (by digest).
 
 ![Notary v2 signature](./media/notaryv2-signature.svg)
 
 **A Notary v2 signature of the `net-monitor:v1` image:**
 
-**digest:** `net-monitor@sha256:8ac803930ea3ba1e54bc25c2bdc53edd0284c62ed651fe7b00369da519a3c222`
-
-```json
-{
-  "schemaVersion": 1,
-  "mediaType": "application/vnd.oci.artifact.manifest.v1+json",
-  "artifactType": "application/vnd.cncf.notary.v2"
-  },
-  "blobs": [
-    {
-      "mediaType": "application/tar",
-      "digest": "sha256:9834876dcfb05cb167a5c24953eba58c4ac89b1adf57f28f2f9d09af107ee8f0",
-      "size": 32654
+- **repository**: `net-monitor`
+- **digest**: `sha256:8ac803930ea3ba1e54bc25c2bdc53edd0284c62ed651fe7b00369da519a3c222`
+- **tag**: _-none-_
+- **manifest.json**:
+  ```json
+  {
+    "schemaVersion": 1,
+    "mediaType": "application/vnd.oci.artifact.manifest.v1+json",
+    "artifactType": "application/vnd.cncf.notary.v2"
+    },
+    "blobs": [
+      {
+        "mediaType": "application/tar",
+        "digest": "sha256:9834876dcfb05cb167a5c24953eba58c4ac89b1adf57f28f2f9d09af107ee8f0",
+        "size": 32654
+      }
+    ],
+    "manifests": [
+      {
+        "mediaType": "application/vnd.oci.image.manifest.v1+json",
+        "digest": "sha256:73c803930ea3ba1e54bc25c2bdc53edd0284c62ed651fe7b00369da519a3c333",
+        "size": 4501
+      }
+    ],
+    "annotations": {
+      "org.cncf.notary.v2.signature.subject": "docker.io"
     }
-  ],
-  "manifests": [
-    {
-      "mediaType": "application/vnd.oci.image.manifest.v1+json",
-      "digest": "sha256:73c803930ea3ba1e54bc25c2bdc53edd0284c62ed651fe7b00369da519a3c333",
-      "size": 4501
-    }
-  ],
-  "annotations": {
-    "org.cncf.notary.v2.signature.subject": "docker.io"
   }
-}
-```
+  ```
 
-The same `net-monitor:v1` image may have an associated SBoM. The `[manifests]` collection references the `net-monitor:v1` image through a manifest descriptor.
+The same `net-monitor:v1` image may have an associated SBoM. The SBoM content would be persisted as one or more `[blobs]` with a `[manifests]` references to the `net-monitor:v1` image.
 
 ![Notary v2 signature](./media/sbom-document.svg)
 
-**digest:** `net-monitor@sha256:7a781a3930ea3ba1e54bc25c2bdc53edd0284c62ed651fe7b00369da519a3c1a81`
+- **repository**: `net-monitor`
+- **digest**: `sha256:7a781a3930ea3ba1e54bc25c2bdc53edd0284c62ed651fe7b00369da519a3c1a81`
+- **tag**: _-none-_
+- **manifest.json**:
+  ```json
+  {
+    "schemaVersion": 1,
+    "mediaType": "application/vnd.oci.artifact.manifest.v1+json",
+    "artifactType": "application/vnd.example.sbom.v1",
+    "blobs": [
+      {
+        "mediaType": "application/tar",
+        "digest": "sha256:9834876dcfb05cb167a5c24953eba58c4ac89b1adf57f28f2f9d09af107ee8f0",
+        "size": 32654
+      }
+    ],
+    "manifests": [
+      {
+        "mediaType": "application/vnd.oci.image.manifest.v1+json",
+        "digest": "sha256:73c803930ea3ba1e54bc25c2bdc53edd0284c62ed651fe7b00369da519a3c333",
+        "size": 4501
+      }
+    ]
+  }
+  ```
 
-```json
-{
-  "schemaVersion": 1,
-  "mediaType": "application/vnd.oci.artifact.manifest.v1+json",
-  "artifactType": "application/vnd.example.sbom.v1",
-  "blobs": [
-    {
-      "mediaType": "application/tar",
-      "digest": "sha256:9834876dcfb05cb167a5c24953eba58c4ac89b1adf57f28f2f9d09af107ee8f0",
-      "size": 32654
-    }
-  ],
-  "manifests": [
-    {
-      "mediaType": "application/vnd.oci.image.manifest.v1+json",
-      "digest": "sha256:73c803930ea3ba1e54bc25c2bdc53edd0284c62ed651fe7b00369da519a3c333",
-      "size": 4501
-    }
-  ]
-}
-```
+The  `net-monitor:v1` SBoM will also be signed, providing yet another leaf node.
+
+![](media/net-monitor-sbom-signature.svg)
+
+- **repository**: `net-monitor`
+- **digest**: `sha256:ea0cfb27fd41ea0405d3095880c1efa45710f5bcdddb7d7d5a7317ad4825ae14`
+- **tag**: _-none-_
+- **manifest.json**:
+  ```json
+  {
+    "schemaVersion": 1,
+    "mediaType": "application/vnd.oci.artifact.manifest.v1+json",
+    "artifactType": "application/vnd.example.sbom.v1",
+    "blobs": [
+      {
+        "mediaType": "application/tar",
+        "digest": "sha256:e49abad529e5d9bd6787f3abeab94e09ba274fe34731349556a850b9aebbf7bf",
+        "size": 32654
+      }
+    ],
+    "manifests": [
+      {
+        "mediaType": "application/vnd.oci.image.manifest.v1+json",
+        "digest": "sha256:7a781a3930ea3ba1e54bc25c2bdc53edd0284c62ed651fe7b00369da519a3c1a81",
+        "size": 4501
+      }
+    ]
+  }
+  ```
 
 Once all artifacts are submitted, the registry would represent a graph of the `net-monitor:v1` image, with signatures, an SBoM, along with a signature on the SBoM.
 
@@ -307,4 +356,6 @@ oci-reg delete registry.acme-rockets.io/base-artifacts/net-monitor@sha256:b5b2b2
 - [OCI Artifact Links API](./manifest-references-api.md) for more information on listing references
 
 [oci-image-manifest-spec]:         https://github.com/opencontainers/image-spec/blob/master/manifest.md
-[references-api]:                 ./manifest-references-api.md
+[references-api]:                  ./manifest-references-api.md
+[oci-artifacts]:                   https://github.com/opencontainers/artifacts
+[oci-artifact-manifest-spec]:      ./artifact-manifest-spec.md
