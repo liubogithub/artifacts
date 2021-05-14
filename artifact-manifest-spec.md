@@ -1,113 +1,70 @@
-# OCI Artifact Manifest Spec
+# OCI Artifact Manifest Spec (Phase-1 Reference Types)
 
-The OCI artifact manifest generalizes the use of [OCI image manifest][oci-image-manifest-spec]. It provides a means to define a wide range of artifacts, including a chain of related artifacts enabling SBoMs, Signatures and metadata. The decision to use `oci.artifact.manifest`, [oci.image.manifest][oci-image-manifest-spec] or [oci.image.index][oci-image-index] is up to the authors of specific artifact types.
+The OCI artifact manifest generalizes the use of [OCI image manifest][oci-image-manifest-spec]. It provides a means to define a wide range of artifacts, including a chain of related artifacts enabling SBoMs, Signatures and metadata. 
+
+To enable a fall 2021 focus on supply chain security,  **Phase 1** will narrowly focus on Reference Type support, giving time for further generalization with less time constraints.
 
 For usage and scenarios, see [artifact-manifest.md](./artifact-manifest.md)
 
 ## Example OCI Artifact Manifests
 
-- [`net-monitor:v1` container image](./artifact-manifest/net-monitor-image.json)
+The following are Phase 1 examples:
+
+- [`net-monitor:v1` oci container image](./artifact-manifest/net-monitor-oci-image.json)
 - [`net-monitor:v1` notary v2 signature](./artifact-manifest/net-monitor-image-signature.json)
-- [`net-monitor:v1` sbom](./artifact-manifest/net-monitor-image-sbom.json)
-- [`net-monitor:v1` nydus image](./artifact-manifest/net-monitor-nydus-image.json)
+- [`net-monitor:v1` sample sbom](./artifact-manifest/net-monitor-image-sbom.json)
 
 ## OCI Artifact Manifest Properties
 
-An artifact manifest provides configuration, a collection of blobs and an optional collection of manifests to other artifacts.
+For **Phase 1**, an artifact manifest provides a collection of blobs and a reference to a manifest of another artifact.
 
 - **`schemaVersion`** *int*
 
   This REQUIRED property specifies the artifact manifest schema version.
-  For this version of the specification, this MUST be `1`. The value of this field WILL change as the manifest schema evolves. Minor version changes to the `oci.artifact.manifest` spec MUST be additive, while major version changes MAY be breaking. Artifact clients MUST implement version checking to allow for future, yet unknown changes. Artifact clients MUST ignore additive properties to minor versions. Artifact clients MAY support major changes, with no guarantee major changes MAY impose breaking changing behaviors. Artifact authors MAY support new and older schemaVersions to provide the best user experience.
+  For this version of the specification, this MUST be `3`. The value of this field WILL change as the manifest schema evolves. Minor version changes to the `oci.artifact.manifest` spec MUST be additive, while major version changes MAY be breaking. Artifact clients MUST implement version checking to allow for future, yet unknown changes. Artifact clients MUST ignore additive properties to minor versions. Artifact clients MAY support major changes, with no guarantee major changes MAY impose breaking changing behaviors. Artifact authors MAY support new and older schemaVersions to provide the best user experience.
 
 - **`mediaType`** *string*
 
-  This field contains the `mediaType` of this document, differentiating from [image-manifest][oci-image-manifest-spec] and [oci-image-index]. The mediaType for this manifest type MUST be `application/vnd.oci.artifact.manifest.v1+json`, where the version WILL change to reflect newer versions. Artifact authors SHOULD support multiple `mediaType` versions to provide the best user experience for their artifact type.
+  This field contains the `mediaType` of this document, differentiating from [image-manifest][oci-image-manifest-spec] and [oci-image-index]. The mediaType for this manifest type MUST be `application/vnd.oci.artifact.manifest.v1-rc1+json`, where the version WILL change to reflect newer versions. `v1-rc1` indicates a stable release, and a step towards a completed `v1` spec. Artifact authors SHOULD support multiple `mediaType` versions to provide the best user experience for their artifact type.
 
-- **`artifactType`** *string*
+- **`referenceType`** *string*
 
-  A unique value, [defining the type of unique artifact type][artifact-type], as registered with iana.org. See [registering unique types.][registering-iana]. OCI Artifacts that used `oci.image.manifest` used the `manifest.config.mediaType` to differentiate the type of artifact, differentiating from a container image. Artifact authors that implement `oci.artifact.manifest` use `artifactType` to differentiate the type of artifact, freeing up the `config.mediaType` to be OPTIONAL, or shared config schemas between multiple artifact types.
+  Phase 1 of the OCI Artifact spec will support reference types to existing [OCI Artifacts][oci-artifacts]. A `referenceType` is unique value, as registered with iana.org. See [registering unique types.][registering-iana]. The `referenceType` is equivalent to OCI Artifacts that used the `manifest.config.mediaType` to differentiate the type of artifact. Artifact authors that implement `oci.artifact.manifest` use `referenceType` to differentiate the type of artifact.
 
 - **`blobs`** *array of objects*
 
-    A collection of 0 or more blobs. The blobs array is analogous to [oci.image.manifest layers][oci-image-manifest-spec-layers], however unlike [image-manifest][oci-image-manifest-spec], the ordering of blobs is specific to the artifact type. Some artifacts may choose an overlay of files, while other artifact types may store collections of files in different locations. To reflect the artifact specific implementations, the `oci.image.manifest.layers` collection is renamed to `blobs`.
+    A collection of 0 or more blobs. The blobs array is analogous to [oci.image.manifest layers][oci-image-manifest-spec-layers], however unlike [image-manifest][oci-image-manifest-spec], the ordering of blobs is specific to the artifact type. Some artifacts may choose an overlay of files, while other artifact types may store indepdent collections of files.
 
-    The [image-config][oci-config] would be considered another blob with a unique `mediaType`. See the [net-monitor-image-artifact.json](./artifact-manifest/net-monitor-image-artifact.json) for an example.
+    - Each item in the array MUST be a [descriptor][descriptor], and MUST NOT refer to another `manifest` providing dependency closure.
+    - The max number of blobs is not defined, but MAY be limited by [distribution-spec][oci-distribution-spec] implementations.
+    - An encountered `descriptor.mediaType` that is unknown to the implementation MUST be ignored.
 
-    Each item in the array MUST be a [descriptor][descriptor].
+- **`subjectManifest`** *descriptor*
 
-    The max number of blobs is not defined, but MAY be limited by [distribution-spec][oci-distribution-spec] implementations.
-
-    An encountered `mediaType` that is unknown to the implementation MUST be ignored.
-
-- **`manifests`** *array of objects*
-
-   An OPTIONAL collection of referenced manifests, which represent linked artifacts. When used, the artifact defined within this manifest is said to be dependent upon the referenced `manifests`.
-
-   As manifests within the `[manifests]` array are deleted, this manifest MAY be deleted. If all `[manifests]` are deleted, and this manifest has no tag reference, the registry MAY delete, based on registry specific use cases. [Distribution spec][oci-distribution-spec] implementations that implement de-duplication, MAY implement ref counting.
-
-   Artifacts authors that implement the `oci.artifact.manifest` MAY support tagged references to the artifact. Artifacts that reference other artifacts through the use of `[manifests]` are said to be dependent upon the referenced artifact and not typically directly referenced through tags. When an artifact has both a `[manifests]` entry, and a tag, the [distribution-spec][oci-distribution-spec] implementation MAY maintain the manifest as the tag reference is expected to be individually referenced. As the manifest is dereferenced from a tag, and all `[manifests]` entries are removed, the manifest SHOULD be deleted.
-
-    Each item in the array MUST be a [descriptor][descriptor] representing a manifest.
+   A REQUIRED reference to an existing manifest. The artifact is said to be dependent upon the referenced `subjectManifest`.
+   - The item MUST be a [descriptor][descriptor] representing a manifest. Descriptors to blobs are not supported. The distribution-spec MUST return a `400` response code when `subjectManifest` is not found, and not a manifest.
+   - Future versions of the `oci.artifact.manifest` MAY support artifacts without a `subjectManifest`.
 
 - **`annotations`** *string-string map*
 
     This OPTIONAL property contains arbitrary metadata for the image manifest.
     This OPTIONAL property MUST use the [annotation rules](annotations.md#rules).
 
-    See [Pre-Defined Annotation Keys](annotations.md#pre-defined-annotation-keys).
+    See [Pre-Defined Annotation Keys][annotations]
 
-## Annotations
+## Push Validation
 
-OCI Artifact Manifest includes several annotations that have been generalized from the image-spec annotations.
+Following the [distribution-spec push api](https://github.com/opencontainers/distribution-spec/blob/main/spec.md#push), all `blobs` *and* the `subjectManifest` descriptors SHOULD exist when pushed to a distribution instance.
 
-- **`annotations`** *string-string map*
+## Lifecycle Management
 
-    This OPTIONAL property contains arbitrary metadata for the image manifest.
-    This OPTIONAL property MUST use the [annotation rules](annotations.md#rules).
+For Phase 1, artifact types will be limited to reference types. A reference type is an artifact that doesn't have a lifecycle unto itself. A container image is said to have an independent lifecycle. A reference type, such as an SBoM or signature have a lifecycle tied to the `subjectManifest`. When the `subjectManifest` is deleted or marked for garbage collection, the defined artifact is subject to deletion as well. A distribution instance SHOULD delete, (refCount -1) the artifact when the `subjectManifest` is deleted.
 
-    See [Pre-Defined Annotation Keys](annotations.md#pre-defined-annotation-keys).
+### Tagged `referenceTypes`
 
-### Pre-Defined Annotation Keys
+As signatures and SBoMs are not considered independent artifact types, they SHOULD NOT have a tag, simplifying the lifecycle management. As the `subjectManifest` is marked for deletion (refCount=0), the `referenctType` is also marked for deletion (refCount -1). However, these artifacts MAY have tags as future versions of the artifact manifest MAY support independent types. 
 
-This specification defines the following annotation keys, intended for but not limited to  Artifact Manifest authors:
-
-- **org.oci.artifact.created** date and time on which the artifact was built (string, date-time as defined by [RFC 3339](https://tools.ietf.org/html/rfc3339#section-5.6)).
-- **org.oci.artifact.authors** contact details of the people or organization responsible for the artifact (semi-colon delineated string)
-- **org.oci.artifact.url** URL to find more information on the artifact (string)
-- **org.oci.artifact.documentation** URL to get documentation on the artifact (string)
-- **org.oci.artifact.source** URL to get source code for building the artifact (string)
-- **org.oci.artifact.version** version of the packaged software
-  - The version MAY match a label or tag in the source code repository
-  - version MAY be [Semantic versioning-compatible](http://semver.org/)
-- **org.oci.artifact.revision** Source control revision identifier for the packaged software.
-- **org.oci.artifact.vendor** Name of the distributing entity, organization or individual.
-- **org.oci.artifact.title** Human-readable title of the artifact (string)
-- **org.oci.artifact.description** Human-readable description of the software packaged in the artifact (string)
-
-```json
-{
-  "annotations": {
-    "org.oci.artifact.created": "",
-    "org.oci.artifact.authors": "",
-    "org.oci.artifact.url": "opencontainers.org",
-    "org.oci.artifact.documentation": "opencontainers.org",
-    "org.oci.artifact.source": "https://github.com/opencontainers/artifacts",
-    "org.oci.artifact.version": "v1.0",
-    "org.oci.artifact.revision": "v1.1.0",
-    "org.oci.artifact.vendor": "Open Containers Initiative",
-    "org.oci.artifact.licenses": "MIT",
-    "org.oci.artifact.title": "Open Containers Artifact Manifest",
-    "org.oci.artifact.description": "A schema for defining artifacts"
-  }
-}
-```
-
-## Q&A
-
-- **Q**: Where is the `config` property?
-  - **A**: The `oci.image.manifest.config` object is a [descriptor][descriptor] stored as a blob, alongside the other `[layers]`. Instead of making this an OPTIONAL property on `oci.artifact.manifest`, artifact types that require a config can simply identify a blob as a config object. See the [net-monitor-image-artifact.json](./artifact-manifest/net-monitor-image-artifact.json) for an example.
-
+[oci-artifacts]:                   https://github.com/opencontainers/artifacts
 [oci-config]:                      https://github.com/opencontainers/image-spec/blob/master/config.md
 [oci-image-manifest-spec]:         https://github.com/opencontainers/image-spec/blob/master/manifest.md
 [oci-image-manifest-spec-layers]:  https://github.com/opencontainers/image-spec/blob/master/manifest.md#image-manifest-property-descriptions
@@ -117,3 +74,4 @@ This specification defines the following annotation keys, intended for but not l
 [artifact-type]:                   https://github.com/opencontainers/artifacts/blob/master/artifact-authors.md#defining-a-unique-artifact-type
 [registering-iana]:                ./artifact-authors.md#registering-unique-types-with-iana
 [descriptor]:                      https://github.com/opencontainers/image-spec/blob/master/descriptor.md
+[annotations]:                     https://github.com/opencontainers/image-spec/blob/master/annotations.md
