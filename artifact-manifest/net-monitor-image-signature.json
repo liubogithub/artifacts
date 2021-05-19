@@ -1,7 +1,7 @@
 {
   "schemaVersion": 3,
   "mediaType": "application/vnd.oci.artifact.manifest.v1-rc1+json",
-  "referenceType": "application/vnd.cncf.notary.v2",
+  "referenceType": "cncf.notary.v2",
   "blobs": [
     {
       "mediaType": "application/tar",
