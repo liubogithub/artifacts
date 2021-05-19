@@ -103,37 +103,7 @@ A signature, or an SBoM, would be persisted with the content persisted in the `[
   {
     "schemaVersion": 3,
     "mediaType": "application/vnd.oci.artifact.manifest.v1-rc1+json",
-    "referenceType": "application/vnd.example.sbom.v0",
-    "blobs": [
-      {
-        "mediaType": "application/tar",
-        "digest": "sha256:9834876dcfb05cb167a5c24953eba58c4ac89b1adf57f28f2f9d09af107ee8f0",
-        "size": 32654
-      }
-    ],
-    "subjectManifest": {
-      "mediaType": "application/vnd.oci.image.manifest.v1+json",
-      "digest": "sha256:73c803930ea3ba1e54bc25c2bdc53edd0284c62ed651fe7b00369da519a3c333",
-      "size": 16724
-    },
-    "annotations": {
-      "example.sbom.author": "wabbit-networks.io"
-    }
-  }
-  ```
-
-The same `net-monitor:v1` image may have an associated SBoM. The SBoM content would be persisted as one or more `[blobs]` with a `subjectManifest` referencing the `net-monitor:v1` image (by digest).
-
-![Notary v2 signature](./media/net-monitor-sbom.svg)
-
-- **repository**: `net-monitor`
-- **digest**: `sha256:7a781a3930ea3ba1e54bc25c2bdc53edd0284c62ed651fe7b00369da519a3c1a`
-- **tag**: _-none-_
-  ```json
-  {
-    "schemaVersion": 3,
-    "mediaType": "application/vnd.oci.artifact.manifest.v1-rc1+json",
-    "referenceType": "application/vnd.cncf.notary.v2",
+    "referenceType": "cncf.notary.v2",
     "blobs": [
       {
         "mediaType": "application/tar",
@@ -152,6 +122,36 @@ The same `net-monitor:v1` image may have an associated SBoM. The SBoM content wo
   }
   ```
 
+The same `net-monitor:v1` image may have an associated SBoM. The SBoM content would be persisted as one or more `[blobs]` with a `subjectManifest` referencing the `net-monitor:v1` image (by digest).
+
+![Notary v2 signature](./media/net-monitor-sbom.svg)
+
+- **repository**: `net-monitor`
+- **digest**: `sha256:7a781a3930ea3ba1e54bc25c2bdc53edd0284c62ed651fe7b00369da519a3c1a`
+- **tag**: _-none-_
+  ```json
+  {
+    "schemaVersion": 3,
+    "mediaType": "application/vnd.oci.artifact.manifest.v1-rc1+json",
+    "referenceType": "example.sbom.v0",
+    "blobs": [
+      {
+        "mediaType": "application/tar",
+        "digest": "sha256:9834876dcfb05cb167a5c24953eba58c4ac89b1adf57f28f2f9d09af107ee8f0",
+        "size": 32654
+      }
+    ],
+    "subjectManifest": {
+      "mediaType": "application/vnd.oci.image.manifest.v1+json",
+      "digest": "sha256:73c803930ea3ba1e54bc25c2bdc53edd0284c62ed651fe7b00369da519a3c333",
+      "size": 16724
+    },
+    "annotations": {
+      "example.sbom.author": "wabbit-networks.io"
+    }
+  }
+  ```
+
 The  `net-monitor:v1` SBoM will also be signed, providing yet another leaf node.
 
 ![](media/net-monitor-sbom-signature.svg)
@@ -163,22 +163,23 @@ The  `net-monitor:v1` SBoM will also be signed, providing yet another leaf node.
   {
     "schemaVersion": 3,
     "mediaType": "application/vnd.oci.artifact.manifest.v1-rc1+json",
-    "referenceType": "application/vnd.example.sbom.v0",
+    "referenceType": "cncf.notary.v2",
     "blobs": [
       {
         "mediaType": "application/tar",
-        "digest": "sha256:e49abad529e5d9bd6787f3abeab94e09ba274fe34731349556a850b9aebbf7bf",
+        "digest": "sha256:9834876dcfb05cb167a5c24953eba58c4ac89b1adf57f28f2f9d09af107ee8f0",
         "size": 32654
       }
     ],
-    "subjectManifests": {
-      "mediaType": "application/vnd.oci.image.manifest.v1+json",
+    "subjectManifest": {
+      "mediaType": "application/vnd.oci.artifact.manifest.v1-rc1+json",
       "digest": "sha256:7a781a3930ea3ba1e54bc25c2bdc53edd0284c62ed651fe7b00369da519a3c1a",
-      "size": 4501
+      "size": 16724
+    },
+    "annotations": {
+      "org.cncf.notary.v2.signature.subject": "wabbit-networks.io"
     }
   }
-  ```
-
 Once all artifacts are submitted, the registry would represent a graph of the `net-monitor:v1` image, including a signature, an SBoM, and a signature on the SBoM.
 
 ![net-monitor image with an sbom & signatures](media/net-monitor-graph.svg)

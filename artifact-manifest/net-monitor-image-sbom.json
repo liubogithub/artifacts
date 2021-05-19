@@ -1,7 +1,7 @@
 {
   "schemaVersion": 3,
   "mediaType": "application/vnd.oci.artifact.manifest.v1-rc1+json",
-  "referenceType": "application/vnd.example.sbom.v0",
+  "referenceType": "example.sbom.v0",
   "blobs": [
     {
       "mediaType": "application/tar",
