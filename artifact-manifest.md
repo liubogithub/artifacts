@@ -103,7 +103,7 @@ A signature, or an SBoM, would be persisted with the content persisted in the `[
   {
     "schemaVersion": 3,
     "mediaType": "application/vnd.oci.artifact.manifest.v1-rc1+json",
-    "referenceType": "cncf.notary.v2",
+    "referenceType": "cncf.notary.v2-rc1",
     "blobs": [
       {
         "mediaType": "application/tar",
@@ -163,7 +163,7 @@ The  `net-monitor:v1` SBoM will also be signed, providing yet another leaf node.
   {
     "schemaVersion": 3,
     "mediaType": "application/vnd.oci.artifact.manifest.v1-rc1+json",
-    "referenceType": "cncf.notary.v2",
+    "referenceType": "cncf.notary.v2-rc1",
     "blobs": [
       {
         "mediaType": "application/tar",
