@@ -1,12 +1,12 @@
 # OCI Artifact Manifest
 
-The OCI artifact manifest generalizes the use of [OCI image manifest][oci-image-manifest-spec]. It provides a means to define a wide range of artifacts, including a chain of related artifacts enabling SBoMs, Signatures and metadata. 
+The OCI artifact manifest generalizes the use of [OCI image manifest][oci-image-manifest-spec]. It provides a means to define a wide range of artifacts, including a chain of related artifacts enabling SBoMs, on-demand loading, Signatures and metadata.
 
 To meet pressing timelines for delivering Secure Supply Chain artifacts in the fall of 2021, the spec will be split into two phases:
 
 ## Phase 1 - Reference Types
 
-Phase 1 is a time focused release, prioritizing a subset of capabilities needed to support reference types, enabling signing and sbom type scenarios.
+Phase 1 is a time focused release, prioritizing a subset of capabilities needed to support reference types, enabling signing, sbom and image with on-demand loading type scenarios.
 
 Reference types require two primary capabilities:
 - **A reverse index API** where the consumer finds references by querying what artifacts are related to a target artifact.  
@@ -35,22 +35,23 @@ All `oci.artifact.manifest` based content will be versioned, enabling distributi
 - [`net-monitor:v1` oci container image](./artifact-manifest/net-monitor-oci-image.json)
 - [`net-monitor:v1` notary v2 signature](./artifact-manifest/net-monitor-image-signature.json)
 - [`net-monitor:v1` sample sbom](./artifact-manifest/net-monitor-image-sbom.json)
+- [`net-monitor:v1` nydus image with on-demand loading](./artifact-manifest/net-monitor-image-nydus-ondemand-loading.json)
 
 ## Reference Types
 
-There are a new set of scenarios requiring the ability to reference existing artifacts, including the ability to additively sign content or add an SBoM. The addition of a [`[subjectManifest]`][subjectManifest] property supports linking artifacts through a reference from one artifact manifest to another artifact manifest. By storing these as separate, but linked artifacts, the existing OCI Image tool chain remains unchanged. Tooling that opts into understanding SBoM or Notary v2 signatures can find the referenced artifacts without changing the existing image tool chains.
+There are a new set of scenarios requiring the ability to reference existing artifacts, including the ability to additively sign content or add a SBoM or image with on-demand loading. The addition of a [`[subjectManifest]`][subjectManifest] property supports linking artifacts through a reference from one artifact manifest to another artifact manifest. By storing these as separate, but linked artifacts, the existing OCI Image tool chain remains unchanged. Tooling that opts into understanding these reference types (eg. SBoM, Notary v2 signatures and Nydus image with on-demand loading) can find the referenced artifacts without changing the existing image tool chains.
 
 ## Reference Type Persistence & Discovery
 
 Reference type persistance & discovery supports the following requirements:
 
 - Maintain the original artifact digest and collection of associated tags, supporting existing dev through deployment workflows.
-- Multiple references per artifact, enabling multiple signatures, SBoMs and other reference types.
+- Multiple references per artifact, enabling multiple signatures, SBoMs, images with on-demand loading and other reference types.
 - Avoiding the need to tag an reference type to assure its not garbage collected as an untagged manifest.
 - Native persistence within an OCI Artifact enabled, distribution spec based registry.
-- Copying the graph of references within and across OCI Artifact enabled, distribution spec based registries, enabling an image, its signatures and SBoMs to be copied as a group.
+- Copying the graph of references within and across OCI Artifact enabled, distribution spec based registries, enabling an image, its signatures, SBoMs and images with on-demand loading to be copied as a group.
 
-To support the above requirements, reference types (eg signatures and SBoMs) are stored as individual, untagged [OCI Artifacts][oci-artifacts]. They are maintained as any other artifact in a registry, supporting standard operations such as listing, deleting, garbage collection and any other content addressable operations within a registry. Untagged artifacts are considered not ready for garbage collection if they have a reference to an existing artifact. See [Lifecycle Management][lifecycle-management] for spec details.
+To support the above requirements, reference types (eg signatures, SBoMs, images with on-demand loading) are stored as individual, untagged [OCI Artifacts][oci-artifacts]. They are maintained as any other artifact in a registry, supporting standard operations such as listing, deleting, garbage collection and any other content addressable operations within a registry. Untagged artifacts are considered not ready for garbage collection if they have a reference to an existing artifact. See [Lifecycle Management][lifecycle-management] for spec details.
 
 ### Example Image
 
