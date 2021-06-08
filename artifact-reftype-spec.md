@@ -1,6 +1,6 @@
 # OCI Artifact Manifest Spec (Phase-1 Reference Types)
 
-The OCI artifact manifest generalizes the use of [OCI image manifest][oci-image-manifest-spec]. It provides a means to define a wide range of artifacts, including a chain of related artifacts enabling SBoMs, Signatures and metadata. 
+The OCI artifact manifest generalizes the use of [OCI image manifest][oci-image-manifest-spec]. It provides a means to define a wide range of artifacts, including a chain of related artifacts enabling SBoMs, on-demand loading, Signatures and metadata. 
 
 To enable a fall 2021 focus on supply chain security,  **Phase 1** will narrowly focus on Reference Type support, giving time for further generalization with less time constraints.
 
@@ -13,6 +13,7 @@ The following are Phase 1 examples:
 - [`net-monitor:v1` oci container image](./artifact-manifest/net-monitor-oci-image.json)
 - [`net-monitor:v1` notary v2 signature](./artifact-manifest/net-monitor-image-signature.json)
 - [`net-monitor:v1` sample sbom](./artifact-manifest/net-monitor-image-sbom.json)
+- [`net-monitor:v1` nydus image with on-demand loading](./artifact-manifest/net-monitor-image-nydus-ondemand-loading.json)
 
 ## OCI Artifact Manifest Properties
 
