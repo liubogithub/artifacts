@@ -1,53 +1,56 @@
 # OCI Artifact Manifest
 
-The OCI artifact manifest generalizes the use of [OCI image manifest][oci-image-manifest-spec]. It provides a means to define a wide range of artifacts, including a chain of related artifacts enabling SBoMs, on-demand loading, Signatures and metadata.
+The OCI artifact manifest generalizes the use of [OCI image manifest][oci-image-manifest-spec]. It provides a means to define a wide range of artifacts, including a chain of related artifacts enabling SBoMs, on-demand loading, Signatures and metadata. 
+
+# Phased Implementations through Experimental Releases
 
 To meet pressing timelines for delivering Secure Supply Chain artifacts in the fall of 2021, the spec will be split into two phases:
 
-## Phase 1 - Reference Types
+### Phase 1 - Reference Types
 
 Phase 1 is a time focused release, prioritizing a subset of capabilities needed to support reference types, enabling signing, sbom and image with on-demand loading type scenarios.
 
 Reference types require two primary capabilities:
-- **A reverse index API** where the consumer finds references by querying what artifacts are related to a target artifact.  
+- **Reference Discovery API**, where the consumer finds references by querying what artifacts are related to a target artifact.  
   For example, what signatures or SBoMs are related to the `net-monitor:v1` container image. See the [manifest-referrers api](./manifest-referrers-api.md) for details.
 - **Lifecycle management**, where a user can find and delete reference types, and a registry can garbage collect unreferenced content.  
-  As registries implement the [distribution-spec][oci-distribution-spec], content may be stored indefinitely. To assure registries MAY implement garbage collection, a manifest is used to identify the intent of the content. See [Lifecycle Management][lifecycle-management] for details.
+  As registries implement the [distribution-spec][oci-distribution-spec], content may be stored indefinitely. To assure registries MAY implement garbage collection, a manifest is used to identify the intent of the content. See [Lifecycle Management][lifecycle-management] for details. The spec doesn't dictate how an lifecycle management must be implemented, rather focuses on a set of consistent expectations for users to have when working across different implementations.
 
-For spec details on Phase 1, see [artifact-manifest-spec.md](./artifact-manifest-spec.md)
+To separate the reference type deliverables for the fall of 2021 from future work, a `application/vnd.oci.artifact.reftype.manifest.v1+json` is provided.
+For spec details on Phase 1, see [artifact-reftype-spec.md](./artifact-reftype-spec.md)
 
-## Phase 2 - Artifact Versioning Support
+### Phase 2 - Artifact Versioning Support
 
 Phase 2 will enable the full range of scenarios outlined in [WIP generic object spec #37](https://github.com/opencontainers/artifacts/pull/37).
 
 By splitting out Phase 1 Reference types from phase 2, we may focus on a subset of capabilities in a short time, while providing time to review and change the larger scenarios.
 
-## Migrating from Phase 1 to Phase 2
+The goal is to migrate phase 1 implementations to phase 2 (PR #37). It is not the intent to have dozens of manifest types. Phase 1 is a point in time release to meet pressing security requirements for supply chain artifacts, while building knowledge to feed into phase 2.
+
+### Migrating from Phase 1 to Phase 2
 
 Registries that implement phase 1 will likely focus on implementing reverse indexes, supporting the referrers api and garbage collection to assure untagged reference types aren't automatically deleted. While the manifest format will change, the underlying capabilities for reverse indexes and lifecycle management will be maintained.
 
-All `oci.artifact.manifest` based content will be versioned, enabling distribution instances and distribution clients to determine the content and how it may be processed.
+All `oci.artifact.*` based content will be named and versioned, enabling distribution instances and distribution clients to determine the content and how it may be processed.
 
-## Table of Contents
+## Reference Types
 
-## Example OCI Artifact Manifests
+There are a new set of scenarios requiring the ability to reference existing artifacts, including the ability to additively sign content or add a SBoM or image with on-demand loading. The addition of a [`[subjectManifest]`][subjectManifest] property supports linking artifacts through a reference from one artifact manifest to another artifact manifest. By storing these as separate, but linked artifacts, the existing OCI Image tool chain remains unchanged. Tooling that opts into understanding these reference types (eg. SBoM, Notary v2 signatures and Nydus image with on-demand loading) can find the referenced artifacts without changing the existing image tool chains.
+
+### Example OCI Artifact Manifests
 
 - [`net-monitor:v1` oci container image](./artifact-manifest/net-monitor-oci-image.json)
 - [`net-monitor:v1` notary v2 signature](./artifact-manifest/net-monitor-image-signature.json)
 - [`net-monitor:v1` sample sbom](./artifact-manifest/net-monitor-image-sbom.json)
 - [`net-monitor:v1` nydus image with on-demand loading](./artifact-manifest/net-monitor-image-nydus-ondemand-loading.json)
 
-## Reference Types
-
-There are a new set of scenarios requiring the ability to reference existing artifacts, including the ability to additively sign content or add a SBoM or image with on-demand loading. The addition of a [`[subjectManifest]`][subjectManifest] property supports linking artifacts through a reference from one artifact manifest to another artifact manifest. By storing these as separate, but linked artifacts, the existing OCI Image tool chain remains unchanged. Tooling that opts into understanding these reference types (eg. SBoM, Notary v2 signatures and Nydus image with on-demand loading) can find the referenced artifacts without changing the existing image tool chains.
-
-## Reference Type Persistence & Discovery
+## Reference Type Requirements
 
 Reference type persistance & discovery supports the following requirements:
 
 - Maintain the original artifact digest and collection of associated tags, supporting existing dev through deployment workflows.
 - Multiple references per artifact, enabling multiple signatures, SBoMs, images with on-demand loading and other reference types.
-- Avoiding the need to tag an reference type to assure its not garbage collected as an untagged manifest.
+- Avoiding the need to tag a reference type to assure its not garbage collected as an untagged manifest.
 - Native persistence within an OCI Artifact enabled, distribution spec based registry.
 - Copying the graph of references within and across OCI Artifact enabled, distribution spec based registries, enabling an image, its signatures, SBoMs and images with on-demand loading to be copied as a group.
 
@@ -59,11 +62,13 @@ The `net-monitor:v1` image contains a config and a collection of layers, as defi
 
 ![OCI Image](./media/net-monitor-image.svg)
 
-The `net-monitor:v1` image is persisted as an `oci.image.manifest`, with a unique digest:
+The `net-monitor:v1` image is persisted as an `oci.image.manifest`, with a unique digest.
+
 
 - **repository**: `net-monitor`
 - **digest**: `sha256:73c803930ea3ba1e54bc25c2bdc53edd0284c62ed651fe7b00369da519a3c333`
 - **tag**: `:v1`
+> **NOTE:** There is no change to the existing image-spec 1.0 format. This example highlights what already exists.
   ```json
   {
     "schemaVersion": 2,
@@ -89,7 +94,7 @@ The `net-monitor:v1` image is persisted as an `oci.image.manifest`, with a uniqu
 
 ### Notary v2 Signatures and SBoM Persistance
 
-Following the [oci.artifact.manifest spec][oci-artifact-manifest-spec], reference type artifacts are pushed with an `manifest.referenceType`, and a `subjectManifest` for the artifact referenced.
+Following the [oci.artifact.reftype.manifest spec][oci-artifact-reftype-manifest-spec], reference type artifacts are pushed with an `manifest.artifactType`, and a `subjectManifest` for the artifact referenced.
 
 A signature, or an SBoM, would be persisted with the content persisted in the `[blobs]` collection, and a `subjectManifest` referencing the `net-monitor:v1` image (by digest).
 
@@ -103,8 +108,8 @@ A signature, or an SBoM, would be persisted with the content persisted in the `[
   ```json
   {
     "schemaVersion": 3,
-    "mediaType": "application/vnd.oci.artifact.manifest.v1-rc1+json",
-    "referenceType": "cncf.notary.v2-rc1",
+    "mediaType": "application/vnd.oci.artifact.reftype.manifest.v1+json",
+    "artifactType": "cncf.notary.v2-rc1",
     "blobs": [
       {
         "mediaType": "application/tar",
@@ -133,8 +138,8 @@ The same `net-monitor:v1` image may have an associated SBoM. The SBoM content wo
   ```json
   {
     "schemaVersion": 3,
-    "mediaType": "application/vnd.oci.artifact.manifest.v1-rc1+json",
-    "referenceType": "example.sbom.v0",
+    "mediaType": "application/vnd.oci.artifact.reftype.manifest.v1+json",
+    "artifactType": "example.sbom.v0",
     "blobs": [
       {
         "mediaType": "application/tar",
@@ -163,8 +168,8 @@ The  `net-monitor:v1` SBoM will also be signed, providing yet another leaf node.
   ```json
   {
     "schemaVersion": 3,
-    "mediaType": "application/vnd.oci.artifact.manifest.v1-rc1+json",
-    "referenceType": "cncf.notary.v2-rc1",
+    "mediaType": "application/vnd.oci.artifact.reftype.manifest.v1+json",
+    "artifactType": "cncf.notary.v2-rc1",
     "blobs": [
       {
         "mediaType": "application/tar",
@@ -173,7 +178,7 @@ The  `net-monitor:v1` SBoM will also be signed, providing yet another leaf node.
       }
     ],
     "subjectManifest": {
-      "mediaType": "application/vnd.oci.artifact.manifest.v1-rc1+json",
+      "mediaType": "application/vnd.oci.artifact.reftype.manifest.v1+json",
       "digest": "sha256:7a781a3930ea3ba1e54bc25c2bdc53edd0284c62ed651fe7b00369da519a3c1a",
       "size": 16724
     },
@@ -209,7 +214,7 @@ In the above example, all the artifacts are displayed without relation to each o
 
 ![flat listing of OCI artifacts](media/repo-listing-attributed.svg)
 
-In the above example, the Notary v2 signature, an SBoM and a collection of attributes are displayed as associated with their target artifact. The references can be collapsed as the `oci.artifact.manifest` provides the reference information.
+In the above example, the Notary v2 signature, an SBoM and a collection of attributes are displayed as associated with their target artifact. The references can be collapsed as the `oci.artifact.reftype.manifest` provides the reference information.
 
 ![expanded listing of OCI artifacts](media/repo-listing-attributed-expanded.svg)
 
@@ -315,7 +320,7 @@ Since the artifacts are individually stored in a registry, shallow copies can be
 
 ```bash
 oci-reg copy \
-  --source docker.io/library/net-monitor:v1 \
+  --source docker.io/wabbitnetworks/net-monitor \
   --target registry.acme-rockets.io/base-artifacts/net-monitor:v1 \
   --copy-references disabled
 ```
@@ -326,7 +331,7 @@ As the referenced types are defined by the `manifest.referenceType`, copying spe
 
 ```bash
 oci-reg copy \
-  --source docker.io/library/net-monitor:v1 \
+  --source docker.io/wabbitnetworks/net-monitor \
   --target registry.acme-rockets.io/base-artifacts/net-monitor:v1 \
   --include-references org.cncf.notary.v2
 ```
@@ -363,14 +368,14 @@ oci-reg delete registry.acme-rockets.io/net-monitor@sha256:b5b2b2c507a0944348e03
 
 ## Further reading
 
-- [oci.artifact.manifest spec](./artifact-manifest-spec.md) for more info on the manifest
+- [oci.artifact.reftype.manifest spec](./artifact-reftype-spec.md) for more info on the manifest
 - [Referrers API][referrers-api] for more information on listing references
 
-[lifecycle-management]:            /artifact-manifest-spec.md#lifecycle-management
-[oci-image-manifest-spec]:         https://github.com/opencontainers/image-spec/blob/master/manifest.md
-[oci-artifacts]:                   https://github.com/opencontainers/artifacts
-[oci-artifact-manifest-spec]:      ./artifact-manifest-spec.md
-[oci-image-index]:                 https://github.com/opencontainers/image-spec/blob/master/image-index.md
-[oci-distribution-spec]:           https://github.com/opencontainers/distribution-spec
-[referrers-api]:                   ./manifest-referrers-api.md
-[subjectManifest]:                 ./artifact-manifest-spec.md#oci-artifact-manifest-properties
+[lifecycle-management]:               ./artifact-reftype-spec.md#lifecycle-management
+[oci-image-manifest-spec]:            https://github.com/opencontainers/image-spec/blob/master/manifest.md
+[oci-artifacts]:                      https://github.com/opencontainers/artifacts
+[oci-artifact-reftype-manifest-spec]: ./artifact-reftype-spec.md
+[oci-image-index]:                    https://github.com/opencontainers/image-spec/blob/master/image-index.md
+[oci-distribution-spec]:              https://github.com/opencontainers/distribution-spec
+[referrers-api]:                      ./manifest-referrers-api.md
+[subjectManifest]:                    ./artifact-reftype-spec.md#oci-artifact-manifest-properties

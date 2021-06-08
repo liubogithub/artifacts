@@ -58,7 +58,7 @@ As an example, Notary v2 manifests use annotations to determine which Notary v2 
       "manifest": {
         "schemaVersion": 3,
         "mediaType": "application/vnd.oci.artifact.manifest.v1-rc1+json",
-        "referenceType": "cncf.notary.v2-rc1",
+        "artifactType": "cncf.notary.v2-rc1",
         "blobs": [
           {
             "mediaType": "application/tar",
@@ -81,7 +81,7 @@ As an example, Notary v2 manifests use annotations to determine which Notary v2 
       "manifest": {
         "schemaVersion": 1,
         "mediaType": "application/vnd.oci.artifact.manifest.v1-rc1+json",
-        "referenceType": "example.sbom.v0"
+        "artifactType": "example.sbom.v0"
       },
       "blobs": [
         {
